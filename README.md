@@ -31,7 +31,7 @@ Automated scraping platform for cybersecurity intelligence from OWASP, MITRE ATT
 
 ```bash
 # 1. Clone repository
-git clone <your-repo-url>
+git clone https://github.com/SaKuRa-u/cybersecurity-scraper
 cd scrape
 
 # 2. Run quick deploy script
