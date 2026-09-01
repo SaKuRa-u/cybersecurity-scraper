@@ -4,13 +4,13 @@ Automated scraping platform for cybersecurity intelligence from OWASP, MITRE ATT
 
 ## Features
 
-- 🎯 **Multi-Source Scraping**: OWASP, MITRE ATT&CK, GitHub, Kali docs
-- 🔄 **Smart Differential Sync**: Auto-detect changes (INSERT/UPDATE/DELETE)
-- 🌐 **Web UI**: Manual triggers, progress monitoring, search & filter
-- 📊 **Analytics Dashboard**: Coverage, freshness, trends
-- 📦 **OpenSearch Export**: JSONL bulk format for vector database
-- ⚡ **Async Processing**: Celery task queue with retry logic
-- 🔍 **Full-Text Search**: PostgreSQL + GIN indexes
+- **Multi-Source Scraping**: OWASP, MITRE ATT&CK, GitHub, Kali docs
+- **Smart Differential Sync**: Auto-detect changes (INSERT/UPDATE/DELETE)
+- **Web UI**: Manual triggers, progress monitoring, search & filter
+- **Analytics Dashboard**: Coverage, freshness, trends
+- **OpenSearch Export**: JSONL bulk format for vector database
+- **Async Processing**: Celery task queue with retry logic
+- **Full-Text Search**: PostgreSQL + GIN indexes
 
 ## Tech Stack
 
@@ -32,61 +32,23 @@ Automated scraping platform for cybersecurity intelligence from OWASP, MITRE ATT
 ```bash
 # 1. Clone repository
 git clone https://github.com/SaKuRa-u/cybersecurity-scraper
-cd scrape
+cd cybersecurity-scraper
 
-# 2. Run quick deploy script
-chmod +x deploy.sh
-./deploy.sh
+# 2. Run setup script
+chmod +x setup.sh
+./setup.sh
 
 # 3. Access application
 # Frontend: http://localhost:3000
 # API docs: http://localhost:8000/docs
 ```
 
-### Manual Installation
-
-```bash
-# 1. Configure environment
-cp .env.example .env
-nano .env  # Edit: DATABASE_PASSWORD, SECRET_KEY, GITHUB_TOKEN
-
-# 2. Start services
-docker-compose up -d
-
-# 3. Wait for services (30-60 seconds)
-docker-compose ps
-
-# 4. Run migrations
-docker-compose exec backend alembic upgrade head
-
-# 5. Seed sources
-docker-compose exec backend python -m scripts.seed_sources
-
-# 6. Access http://localhost:3000
-```
-
-## First Use
-
-1. Open http://localhost:3000
-2. Click "Scrape Now" on any source card
-3. Watch real-time progress
-4. Browse scraped data in "Data Browser"
-
 ## Configuration
 
-Key environment variables in `.env`:
-
-```bash
-# Required
-DATABASE_PASSWORD=your-secure-password
-SECRET_KEY=your-random-32-char-string
-
-# Optional (for GitHub scraper rate limits)
-GITHUB_TOKEN=ghp_your_token_here
-
-# Export settings
-OPENSEARCH_INDEX_NAME=cybersec_knowledge
-```
+Edit `.env` after running setup:
+- `DATABASE_PASSWORD` - PostgreSQL password
+- `SECRET_KEY` - Flask secret key (32+ chars)
+- `GITHUB_TOKEN` - GitHub PAT for higher rate limits (optional)
 
 ## Architecture
 
@@ -100,6 +62,44 @@ OPENSEARCH_INDEX_NAME=cybersec_knowledge
                             │        (Scrapers)
                             │
                             └─────►  Redis
+                                     (Task Queue)
+```
+
+## Data Export
+
+```bash
+# Export to OpenSearch format
+curl -X POST "http://localhost:8000/api/export/opensearch?format=jsonl"
+```
+
+## Documentation
+
+- [Design Specification](docs/superpowers/specs/2026-09-01-cybersecurity-data-scraper-design.md)
+- [Implementation Plan](docs/superpowers/plans/2026-09-01-cybersecurity-data-scraper.md)
+
+## Development
+
+```bash
+# Backend tests
+docker-compose exec backend pytest tests/ -v
+
+# Frontend dev server
+cd frontend
+npm run dev
+
+# View logs
+docker-compose logs -f backend
+```
+
+## License
+
+MIT
+
+## Support
+
+- Issues: GitHub Issues
+- API Docs: http://localhost:8000/docs
+                 └─────►  Redis
                                      (Task Queue)
 ```
 
