@@ -20,6 +20,7 @@ dist/
 # Environment
 .env
 .env.local
+.env.*.local
 
 # IDE
 .vscode/
@@ -48,3 +49,15 @@ Thumbs.db
 
 # Alembic
 alembic/versions/*.pyc
+
+# Documentation (private/internal)
+DEPLOYMENT.md
+PROJECT_SUMMARY.md
+START_HERE.txt
+READY_TO_DEPLOY.txt
+FINAL_SUMMARY.txt
+file-list.txt
+OPENCODE_QUICK_REFERENCE.md
+RINGKASAN_OPENCODE_SKILLS.md
+AGENTS.md
+
