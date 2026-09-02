@@ -19,8 +19,11 @@ celery_app.conf.update(
     task_track_started=True,
 )
 
-# Tasks will be registered manually when implemented
-# celery_app.autodiscover_tasks(["tasks"])
+try:
+    celery_app.autodiscover_tasks(["tasks"], force=True)
+except Exception as e:
+    import logging
+    logging.getLogger(__name__).warning(f"Autodiscover failed: {e}")
 
 @celery_app.task(bind=True)
 def debug_task(self):

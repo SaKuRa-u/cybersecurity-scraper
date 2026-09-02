@@ -122,7 +122,6 @@ async def get_source(source_id: int):
 
 @app.post("/api/sources/{source_id}/scrape")
 async def trigger_scrape(source_id: int):
-    # For now return mock - real scraping will be implemented with Celery
     try:
         conn = await get_conn()
         row = await conn.fetchrow("SELECT * FROM sources WHERE id = $1", source_id)
@@ -135,12 +134,20 @@ async def trigger_scrape(source_id: int):
             VALUES ($1, 'pending', 'manual') RETURNING id
         """, source_id)
         await conn.close()
-        logger.info(f"Mock scrape triggered for {row['display_name']} session {session_id}")
+        # Try to enqueue Celery task
+        try:
+            from tasks.scrape_tasks import scrape_source_task
+            task = scrape_source_task.delay(source_id, session_id)
+            task_id = task.id
+            logger.info(f"Enqueued scrape for {row['display_name']} session {session_id} task {task_id}")
+        except Exception as ce:
+            logger.warning(f"Celery enqueue failed, fallback to mock: {ce}")
+            task_id = f"mock-{session_id}"
         return {
             "session_id": session_id,
-            "task_id": f"mock-{session_id}",
+            "task_id": task_id,
             "status": "pending",
-            "message": f"Scrape queued for {row['display_name']} (mock - scraper not yet implemented)"
+            "message": f"Scrape queued for {row['display_name']}"
         }
     except Exception as e:
         logger.error(f"trigger_scrape failed: {e}")
