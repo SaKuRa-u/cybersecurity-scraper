@@ -9,9 +9,9 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  const loadData = async () => {
+  const loadData = async (silent = false) => {
     try {
-      setLoading(true)
+      if (!silent) setLoading(true)
       const [sRes, oRes] = await Promise.all([
         sourcesAPI.list(),
         analyticsAPI.overview().catch(() => ({ data: null }))
@@ -19,13 +19,13 @@ const Dashboard = () => {
       setSources(sRes.data)
       if (oRes.data) setOverview(oRes.data)
     } catch (e) {
-      setError(e.message)
+      if (!silent) setError(e.message)
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }
 
-  useEffect(() => { loadData() }, [])
+  useEffect(() => { loadData(false) }, [])
 
   // WebSocket for real-time progress + fallback polling
   const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/scrape-progress`
@@ -33,22 +33,21 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (lastMessage?.type === 'sessions') {
-      // Refresh when WS says there are active sessions or just completed
-      loadData()
+      loadData(true) // silent, no blink
     }
   }, [lastMessage])
 
-  // Fallback polling if WS disconnected
+  // Fallback polling if WS disconnected - silent
   useEffect(() => {
     if (!isConnected && overview?.active_sessions > 0) {
-      const id = setInterval(loadData, 3000)
+      const id = setInterval(() => loadData(true), 3000)
       return () => clearInterval(id)
     }
   }, [isConnected, overview?.active_sessions])
 
   const handleScrape = async (id) => {
     await sourcesAPI.scrape(id)
-    setTimeout(loadData, 1000)
+    setTimeout(() => loadData(true), 800)
   }
 
   const handleExportAll = async () => {
