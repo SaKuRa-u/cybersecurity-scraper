@@ -46,7 +46,7 @@ class BaseScraper(ABC):
                 item["source_id"] = source_id
                 fetched_map[item["external_id"]] = item
 
-            existing_rows = await conn.fetch("SELECT id, external_id, content_hash FROM scraped_data WHERE source_id = $1 AND is_deleted = false", source_id)
+            existing_rows = await conn.fetch("SELECT id, external_id, content_hash FROM scraped_data WHERE source_id = $1 AND (is_deleted = false OR is_deleted IS NULL)", source_id)
             existing_map = {r["external_id"]: dict(r) for r in existing_rows}
 
             stats = {"inserted": 0, "updated": 0, "deleted": 0, "unchanged": 0}
@@ -54,8 +54,8 @@ class BaseScraper(ABC):
             for ext_id, item in fetched_map.items():
                 if ext_id not in existing_map:
                     await conn.execute("""
-                        INSERT INTO scraped_data (source_id, external_id, content_type, title, description, content, tags, severity, url, content_hash, metadata)
-                        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+                        INSERT INTO scraped_data (source_id, external_id, content_type, title, description, content, tags, severity, url, content_hash, metadata, is_deleted)
+                        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,false)
                     """, item["source_id"], item["external_id"], item["content_type"], item["title"], item.get("description"), json.dumps(item["content"]), item.get("tags", []), item.get("severity"), item.get("url"), item["content_hash"], json.dumps(item.get("metadata") or {}))
                     stats["inserted"] += 1
                     logger.info(f"INSERT {ext_id}")

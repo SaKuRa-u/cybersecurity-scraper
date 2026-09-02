@@ -67,7 +67,7 @@ async def list_sources():
         conn = await get_conn()
         rows = await conn.fetch("""
             SELECT s.*, 
-                   (SELECT COUNT(*) FROM scraped_data WHERE source_id = s.id AND is_deleted = false) as total_items,
+                   (SELECT COUNT(*) FROM scraped_data WHERE source_id = s.id AND COALESCE(is_deleted, false) = false) as total_items,
                    (SELECT status FROM scrape_sessions WHERE source_id = s.id ORDER BY started_at DESC LIMIT 1) as last_session_status
             FROM sources s ORDER BY s.id
         """)
@@ -100,7 +100,7 @@ async def get_source(source_id: int):
         if not row:
             await conn.close()
             return JSONResponse(status_code=404, content={"detail": "Source not found"})
-        total = await conn.fetchval("SELECT COUNT(*) FROM scraped_data WHERE source_id = $1 AND is_deleted = false", source_id)
+        total = await conn.fetchval("SELECT COUNT(*) FROM scraped_data WHERE source_id = $1 AND COALESCE(is_deleted, false) = false", source_id)
         last_status = await conn.fetchval("SELECT status FROM scrape_sessions WHERE source_id = $1 ORDER BY started_at DESC LIMIT 1", source_id)
         await conn.close()
         return {
@@ -158,7 +158,7 @@ async def list_data(page: int = 1, per_page: int = 50, source: str = None, conte
     try:
         conn = await get_conn()
         # Build where clause
-        where = ["is_deleted = false"]
+        where = ["COALESCE(is_deleted, false) = false"]
         params = []
         idx = 1
         if source:
@@ -259,7 +259,7 @@ async def list_sessions(limit: int = 50):
 async def analytics_overview():
     try:
         conn = await get_conn()
-        total = await conn.fetchval("SELECT COUNT(*) FROM scraped_data WHERE is_deleted = false") or 0
+        total = await conn.fetchval("SELECT COUNT(*) FROM scraped_data WHERE COALESCE(is_deleted, false) = false") or 0
         sources_count = await conn.fetchval("SELECT COUNT(*) FROM sources") or 0
         last_scrape = await conn.fetchval("SELECT MAX(last_scraped_at) FROM sources")
         active = await conn.fetchval("SELECT COUNT(*) FROM scrape_sessions WHERE status IN ('pending','running')") or 0
@@ -279,13 +279,13 @@ async def analytics_coverage():
     try:
         conn = await get_conn()
         rows = await conn.fetch("SELECT id, name, display_name, last_scraped_at FROM sources")
-        total = await conn.fetchval("SELECT COUNT(*) FROM scraped_data WHERE is_deleted = false") or 0
+        total = await conn.fetchval("SELECT COUNT(*) FROM scraped_data WHERE COALESCE(is_deleted, false) = false") or 0
         await conn.close() if False else None
         result = []
         # need per source count - reopen? we closed? fix
         conn2 = await get_conn()
         for r in rows:
-            count = await conn2.fetchval("SELECT COUNT(*) FROM scraped_data WHERE source_id = $1 AND is_deleted = false", r["id"]) or 0
+            count = await conn2.fetchval("SELECT COUNT(*) FROM scraped_data WHERE source_id = $1 AND COALESCE(is_deleted, false) = false", r["id"]) or 0
             perc = (count / total * 100) if total else 0
             result.append({
                 "source": r["name"],
@@ -323,9 +323,9 @@ async def export_opensearch(source_id: int = None, format: str = "jsonl"):
         import json, pathlib, datetime
         conn = await get_conn()
         if source_id:
-            rows = await conn.fetch("SELECT * FROM scraped_data WHERE source_id = $1 AND is_deleted = false", source_id)
+            rows = await conn.fetch("SELECT * FROM scraped_data WHERE source_id = $1 AND COALESCE(is_deleted, false) = false", source_id)
         else:
-            rows = await conn.fetch("SELECT * FROM scraped_data WHERE is_deleted = false")
+            rows = await conn.fetch("SELECT * FROM scraped_data WHERE COALESCE(is_deleted, false) = false")
         await conn.close()
         # Build export dir
         export_dir = pathlib.Path(settings.EXPORT_DIR)
@@ -365,6 +365,14 @@ async def export_opensearch(source_id: int = None, format: str = "jsonl"):
 @app.on_event("startup")
 async def startup():
     logger.info("API starting up...")
+    # Fix legacy rows where is_deleted is NULL
+    try:
+        conn = await get_conn()
+        await conn.execute("UPDATE scraped_data SET is_deleted = false WHERE is_deleted IS NULL")
+        await conn.close()
+        logger.info("Fixed NULL is_deleted rows")
+    except Exception as e:
+        logger.warning(f"Startup fix failed: {e}")
 
 @app.on_event("shutdown")
 async def shutdown():
