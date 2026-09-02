@@ -2,6 +2,7 @@
 
 alembic env file for database migrations.
 """
+import os
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config
@@ -13,6 +14,15 @@ config = context.config
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
+
+# Override sqlalchemy.url from DATABASE_URL env var (Docker) if present
+# This fixes localhost vs postgres hostname issue
+db_url = os.getenv("DATABASE_URL")
+if db_url:
+    # Alembic needs sync psycopg2 driver, not asyncpg
+    if db_url.startswith("postgresql+asyncpg://"):
+        db_url = db_url.replace("postgresql+asyncpg://", "postgresql://")
+    config.set_main_option("sqlalchemy.url", db_url)
 
 # add your model's MetaData object here
 # for 'autogenerate' support
