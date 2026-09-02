@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { sourcesAPI, analyticsAPI, exportAPI } from '../services/api'
 import SourceCard from './SourceCard'
+import { useWebSocket } from '../hooks/useWebSocket'
 
 const Dashboard = () => {
   const [sources, setSources] = useState([])
@@ -26,13 +27,24 @@ const Dashboard = () => {
 
   useEffect(() => { loadData() }, [])
 
-  // Poll while scrapes are active
+  // WebSocket for real-time progress + fallback polling
+  const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/scrape-progress`
+  const { lastMessage, isConnected } = useWebSocket(wsUrl)
+
   useEffect(() => {
-    if (overview?.active_sessions > 0) {
+    if (lastMessage?.type === 'sessions') {
+      // Refresh when WS says there are active sessions or just completed
+      loadData()
+    }
+  }, [lastMessage])
+
+  // Fallback polling if WS disconnected
+  useEffect(() => {
+    if (!isConnected && overview?.active_sessions > 0) {
       const id = setInterval(loadData, 3000)
       return () => clearInterval(id)
     }
-  }, [overview?.active_sessions])
+  }, [isConnected, overview?.active_sessions])
 
   const handleScrape = async (id) => {
     await sourcesAPI.scrape(id)
@@ -66,7 +78,12 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6 p-6">
-      <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        <span className={`text-xs px-2 py-1 rounded-full ${isConnected ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+          {isConnected ? '● Live' : '○ Polling'}
+        </span>
+      </div>
 
       {overview && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

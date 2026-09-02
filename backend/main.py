@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 import asyncpg
 
 from config import settings
+from api.websocket import router as ws_router
 
 logging.basicConfig(
     level=getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO),
@@ -28,6 +29,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(ws_router)
 
 # Helper to get DB connection
 async def get_conn():
