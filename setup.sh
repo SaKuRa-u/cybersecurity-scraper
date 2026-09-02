@@ -57,7 +57,35 @@ sleep 30
 echo ""
 echo -e "${YELLOW}🗄️  Step 5/5: Initializing database${NC}"
 echo "Running migrations..."
-docker compose exec -T backend alembic upgrade head || { echo -e "${RED}❌ Migration failed${NC}"; exit 1; }
+
+# Try migration, auto-handle password mismatch (volume from old password)
+set +e
+MIGRATION_OUTPUT=$(docker compose exec -T backend alembic upgrade head 2>&1)
+MIGRATION_EXIT=$?
+set -e
+
+if [ $MIGRATION_EXIT -ne 0 ]; then
+    if echo "$MIGRATION_OUTPUT" | grep -q "password authentication failed"; then
+        echo -e "${YELLOW}⚠️  Password mismatch detected (old volume with different password)${NC}"
+        echo "This happens when .env DATABASE_PASSWORD was changed after first docker compose up."
+        echo ""
+        echo -e "${YELLOW}Auto-fixing: removing old postgres volume and re-initializing...${NC}"
+        docker compose down -v
+        docker compose up -d
+        echo "Waiting 30s for postgres to re-init..."
+        sleep 30
+        echo "Retrying migrations..."
+        docker compose exec -T backend alembic upgrade head || { echo -e "${RED}❌ Migration still failed after reset${NC}"; echo "$MIGRATION_OUTPUT"; exit 1; }
+        echo -e "${GREEN}✓ Migrations succeeded after volume reset${NC}"
+    else
+        echo -e "${RED}❌ Migration failed${NC}"
+        echo "$MIGRATION_OUTPUT"
+        exit 1
+    fi
+else
+    echo "$MIGRATION_OUTPUT"
+    echo -e "${GREEN}✓ Migrations completed${NC}"
+fi
 
 echo "Seeding sources..."
 docker compose exec -T backend python -m scripts.seed_sources || { echo -e "${RED}❌ Seed failed${NC}"; exit 1; }
@@ -84,6 +112,7 @@ echo "🛠️  Useful commands:"
 echo "   docker compose ps              # Check status"
 echo "   docker compose restart backend # Restart service"
 echo "   docker compose down            # Stop all"
+echo "   docker compose down -v         # Stop + remove DB volume (reset DB)"
 echo ""
 echo "📖 Next Steps:"
 echo "   1. Open http://localhost:3000"
