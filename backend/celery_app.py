@@ -17,13 +17,9 @@ celery_app.conf.update(
     timezone="UTC",
     enable_utc=True,
     task_track_started=True,
+    imports=("tasks.scrape_tasks",),
+    broker_connection_retry_on_startup=True,
 )
-
-try:
-    celery_app.autodiscover_tasks(["tasks"], force=True)
-except Exception as e:
-    import logging
-    logging.getLogger(__name__).warning(f"Autodiscover failed: {e}")
 
 @celery_app.task(bind=True)
 def debug_task(self):
