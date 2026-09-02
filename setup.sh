@@ -41,12 +41,12 @@ fi
 # Step 2: Build Docker images
 echo ""
 echo -e "${YELLOW}🔨 Step 2/5: Building Docker images${NC}"
-docker-compose build || { echo -e "${RED}❌ Build failed${NC}"; exit 1; }
+docker compose build || { echo -e "${RED}❌ Build failed${NC}"; exit 1; }
 
 # Step 3: Start services
 echo ""
 echo -e "${YELLOW}▶️  Step 3/5: Starting services${NC}"
-docker-compose up -d || { echo -e "${RED}❌ Start failed${NC}"; exit 1; }
+docker compose up -d || { echo -e "${RED}❌ Start failed${NC}"; exit 1; }
 
 # Step 4: Wait for services
 echo ""
@@ -57,10 +57,10 @@ sleep 30
 echo ""
 echo -e "${YELLOW}🗄️  Step 5/5: Initializing database${NC}"
 echo "Running migrations..."
-docker-compose exec -T backend alembic upgrade head || { echo -e "${RED}❌ Migration failed${NC}"; exit 1; }
+docker compose exec -T backend alembic upgrade head || { echo -e "${RED}❌ Migration failed${NC}"; exit 1; }
 
 echo "Seeding sources..."
-docker-compose exec -T backend python -m scripts.seed_sources || { echo -e "${RED}❌ Seed failed${NC}"; exit 1; }
+docker compose exec -T backend python -m scripts.seed_sources || { echo -e "${RED}❌ Seed failed${NC}"; exit 1; }
 
 # Verification
 echo ""
@@ -77,12 +77,12 @@ echo "🔍 Verify deployment:"
 echo "   ./verify.sh"
 echo ""
 echo "📊 View logs:"
-echo "   docker-compose logs -f"
+echo "   docker compose logs -f"
 echo ""
 echo "🛠️  Useful commands:"
-echo "   docker-compose ps              # Check status"
-echo "   docker-compose restart backend # Restart service"
-echo "   docker-compose down            # Stop all"
+echo "   docker compose ps              # Check status"
+echo "   docker compose restart backend # Restart service"
+echo "   docker compose down            # Stop all"
 echo ""
 echo "📖 Next Steps:"
 echo "   1. Open http://localhost:3000"
