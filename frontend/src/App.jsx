@@ -1,10 +1,8 @@
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom'
-
-// Placeholder components - will be implemented in tasks
-const Dashboard = () => <div className="p-6"><h1 className="text-2xl font-bold">Dashboard</h1><p className="mt-4">Dashboard component will be implemented in Task 16</p></div>
-const DataBrowser = () => <div className="p-6"><h1 className="text-2xl font-bold">Data Browser</h1><p className="mt-4">Data Browser component will be implemented in Task 17</p></div>
-const Analytics = () => <div className="p-6"><h1 className="text-2xl font-bold">Analytics</h1><p className="mt-4">Analytics component will be implemented in Task 18</p></div>
-const SessionHistory = () => <div className="p-6"><h1 className="text-2xl font-bold">Session History</h1><p className="mt-4">Session History component will be implemented in Task 18</p></div>
+import Dashboard from './components/Dashboard'
+import DataBrowser from './components/DataBrowser'
+import Analytics from './components/Analytics'
+import SessionHistory from './components/SessionHistory'
 
 function App() {
   return (
