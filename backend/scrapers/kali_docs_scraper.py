@@ -88,9 +88,7 @@ class KaliDocsScraper(BaseScraper):
                             content = s2.find("div", class_="content") or s2.find("main") or s2
                             ps = content.find_all("p", limit=3) if content else []
                             desc = " ".join([p.get_text(strip=True) for p in ps])[:1200] if ps else f"Kali tool {name}"
-                            # Use known_cat from listing, not breadcrumb (more reliable)
                             cat = known_cat
-                            # Try to refine cat from page breadcrumb if still Unknown
                             if cat == "Unknown":
                                 breadcrumb = s2.find("nav", class_="breadcrumb") or s2.find("ol", class_="breadcrumb")
                                 if breadcrumb:
@@ -100,7 +98,41 @@ class KaliDocsScraper(BaseScraper):
                             detailed = " ".join([p.get_text(strip=True) for p in ps]) if ps else ""
                             codes = s2.find_all("code")
                             examples = [c.get_text(strip=True) for c in codes[:3] if len(c.get_text(strip=True))<500]
-                            return {"name": name, "category": cat, "description": desc[:800], "url": url, "usage": name, "detailed_description": detailed[:1000], "examples": examples, "title": title}
+                            # Try to fetch official homepage for fresher context (hybrid)
+                            official_desc = ""
+                            try:
+                                pkg_links = s2.find("div", id="package-links")
+                                official_url = None
+                                if pkg_links:
+                                    for a in pkg_links.find_all("a", href=True):
+                                        href = a["href"]
+                                        if href.startswith("http") and "kali.org" not in href and "pkg.kali.org" not in href and "gitlab.com" not in href:
+                                            # Heuristic: first non-kali link is official homepage (e.g., nmap.org)
+                                            if name.lower() in href.lower() or "nmap" in href.lower() or "github" in href.lower() or href.count(".") >= 1:
+                                                official_url = href
+                                                break
+                                if official_url:
+                                    logger.info(f"{name} official {official_url}")
+                                    # Fetch official with short timeout, ignore errors
+                                    try:
+                                        r2 = await client.get(official_url, timeout=10.0, follow_redirects=True, headers={"User-Agent":"Mozilla/5.0"})
+                                        if r2.status_code == 200 and len(r2.text) > 500:
+                                            s3 = BeautifulSoup(r2.text,"html.parser")
+                                            # Extract first paragraphs from official site
+                                            op = s3.find_all("p", limit=3)
+                                            official_desc = " ".join([p.get_text(strip=True) for p in op])[:1000]
+                                            # Also try to get examples from official
+                                            if not examples:
+                                                ocodes = s3.find_all("code", limit=3)
+                                                examples = [c.get_text(strip=True)[:500] for c in ocodes if len(c.get_text(strip=True))>10][:2]
+                                            if official_desc:
+                                                desc = f"{desc} [Official: {official_desc[:600]}]"
+                                                detailed = f"{detailed} {official_desc[:500]}"
+                                    except Exception as oe:
+                                        logger.debug(f"Official fetch failed for {name}: {oe}")
+                            except Exception:
+                                pass
+                            return {"name": name, "category": cat, "description": desc[:1000], "url": url, "usage": name, "detailed_description": detailed[:1500], "examples": examples, "title": title}
                         except Exception as e:
                             logger.warning(f"fetch {url} failed: {e}")
                             name = url.rstrip("/").split("/")[-1]
