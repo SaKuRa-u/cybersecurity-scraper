@@ -85,9 +85,13 @@ class KaliDocsScraper(BaseScraper):
                             s2 = BeautifulSoup(resp.text,"html.parser")
                             title_el = s2.find("h1") or s2.find("title")
                             title = title_el.get_text(strip=True) if title_el else name
-                            content = s2.find("div", class_="content") or s2.find("main") or s2
-                            ps = content.find_all("p", limit=3) if content else []
-                            desc = " ".join([p.get_text(strip=True) for p in ps])[:1200] if ps else f"Kali tool {name}"
+                            # Deep extraction: get full section content
+                            content_section = s2.find("section", id="content") or s2.find("div", class_="content") or s2.find("main") or s2
+                            # Description: first substantial paragraphs (up to 5000 chars)
+                            ps = content_section.find_all("p") if content_section else []
+                            # Filter out empty and take first 8 paragraphs
+                            desc_paras = [p.get_text(strip=True) for p in ps if len(p.get_text(strip=True)) > 20][:8]
+                            desc = " ".join(desc_paras)[:5000] if desc_paras else f"Kali tool {name}"
                             cat = known_cat
                             if cat == "Unknown":
                                 breadcrumb = s2.find("nav", class_="breadcrumb") or s2.find("ol", class_="breadcrumb")
@@ -95,9 +99,36 @@ class KaliDocsScraper(BaseScraper):
                                     cats = [a.get_text(strip=True) for a in breadcrumb.find_all("a")]
                                     if len(cats)>=2:
                                         cat = cats[-2]
-                            detailed = " ".join([p.get_text(strip=True) for p in ps]) if ps else ""
-                            codes = s2.find_all("code")
-                            examples = [c.get_text(strip=True) for c in codes[:3] if len(c.get_text(strip=True))<500]
+                            # Detailed: all text from content_section (including headings + pre)
+                            detailed = ""
+                            if content_section:
+                                # Get all headings and paragraphs and pre
+                                elements = content_section.find_all(["h1","h2","h3","h4","h5","p","pre"])
+                                parts = []
+                                for el in elements[:50]:  # limit 50 elements
+                                    txt = el.get_text(strip=True)
+                                    if len(txt) > 20:
+                                        if el.name.startswith("h"):
+                                            parts.append(f"\n## {txt}\n")
+                                        elif el.name == "pre":
+                                            parts.append(f"\n```\n{txt[:3000]}\n```\n")
+                                        else:
+                                            parts.append(txt)
+                                detailed = " ".join(parts)[:12000]
+                            # Examples: all pre/code blocks (full man page), not truncated to 500
+                            examples = []
+                            if content_section:
+                                pres = content_section.find_all("pre")
+                                for pre in pres[:5]:
+                                    txt = pre.get_text(strip=True)
+                                    if len(txt) > 30:
+                                        examples.append(txt[:5000])
+                                if not examples:
+                                    codes = content_section.find_all("code")
+                                    for c in codes[:5]:
+                                        txt = c.get_text(strip=True)
+                                        if 20 < len(txt) < 5000:
+                                            examples.append(txt[:2000])
                             # Try to fetch official homepage for fresher context (hybrid) - ALL tools, not just nmap
                             official_desc = ""
                             try:
@@ -134,7 +165,7 @@ class KaliDocsScraper(BaseScraper):
                                         logger.debug(f"Official fetch failed for {name} ({official_url}): {oe}")
                             except Exception as e:
                                 logger.debug(f"Official extract failed for {name}: {e}")
-                            return {"name": name, "category": cat, "description": desc[:1000], "url": url, "usage": name, "detailed_description": detailed[:1500], "examples": examples, "title": title}
+                            return {"name": name, "category": cat, "description": desc[:6000], "url": url, "usage": name, "detailed_description": detailed[:15000], "examples": examples[:5], "title": title}
                         except Exception as e:
                             logger.warning(f"fetch {url} failed: {e}")
                             name = url.rstrip("/").split("/")[-1]

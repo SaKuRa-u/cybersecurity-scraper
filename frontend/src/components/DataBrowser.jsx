@@ -39,7 +39,7 @@ const DataBrowser = () => {
 
       <div className="card space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <input className="input" placeholder="Search..." value={filters.search} onChange={e=>{setFilters({...filters, search: e.target.value}); setPagination({...pagination, page:1})}} />
+          <input className="input" placeholder="Search title/desc/id (e.g. kali_nmap)" value={filters.search} onChange={e=>{setFilters({...filters, search: e.target.value}); setPagination({...pagination, page:1})}} />
           <select className="input" value={filters.source} onChange={e=>{setFilters({...filters, source: e.target.value}); setPagination({...pagination, page:1})}}>
             <option value="">All Sources</option>
             {sources.map(s=><option key={s.id} value={s.name}>{s.display_name}</option>)}
@@ -69,12 +69,12 @@ const DataBrowser = () => {
             <div className="text-sm text-gray-600 mb-4">Showing {((pagination.page-1)*pagination.per_page)+1} - {Math.min(pagination.page*pagination.per_page, pagination.total)} of {pagination.total}</div>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50"><tr><th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Title</th><th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Source</th><th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Type</th><th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Tags</th><th className="px-4 py-2 text-right text-xs font-medium text-gray-500">Actions</th></tr></thead>
+                <thead className="bg-gray-50"><tr><th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Title</th><th className="px-4 py-2 text-left text-xs font-medium text-gray-500">ID</th><th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Type</th><th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Tags</th><th className="px-4 py-2 text-right text-xs font-medium text-gray-500">Actions</th></tr></thead>
                 <tbody className="divide-y divide-gray-200">
                   {data.map(item=>(
                     <tr key={item.id} className="hover:bg-gray-50 cursor-pointer" onClick={()=>setSelected(item)}>
                       <td className="px-4 py-2"><div className="text-sm font-medium hover:text-blue-600">{item.title}</div><div className="text-xs text-gray-500 truncate max-w-md">{item.description}</div></td>
-                      <td className="px-4 py-2 text-sm">{item.source}</td>
+                      <td className="px-4 py-2 text-xs font-mono text-gray-600">{item.external_id}</td>
                       <td className="px-4 py-2"><span className="px-2 py-1 text-xs rounded-full bg-gray-100">{item.content_type}</span></td>
                       <td className="px-4 py-2 text-xs">{(item.tags||[]).slice(0,3).join(', ')}</td>
                       <td className="px-4 py-2 text-right"><button onClick={(e)=>{e.stopPropagation(); handleDelete(item.id)}} className="text-red-600 hover:text-red-800 text-sm">Delete</button></td>

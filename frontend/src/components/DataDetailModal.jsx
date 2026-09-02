@@ -29,12 +29,30 @@ const DataDetailModal = ({ item, onClose }) => {
         </div>
 
         <div className="px-6 py-4 space-y-4">
-          {item.description && (
-            <div>
-              <h3 className="text-sm font-semibold text-gray-700 mb-1">Description</h3>
-              <p className="text-sm text-gray-900 whitespace-pre-wrap bg-gray-50 p-3 rounded">{item.description}</p>
-            </div>
-          )}
+          {item.description && (() => {
+            const desc = item.description
+            const officialIdx = desc.indexOf("[Official")
+            const kaliPart = officialIdx !== -1 ? desc.substring(0, officialIdx).trim() : desc
+            const officialPart = officialIdx !== -1 ? desc.substring(officialIdx) : null
+            // Extract official URL if present
+            const urlMatch = officialPart ? officialPart.match(/\[Official (https?:\/\/[^:]+):/) : null
+            const officialUrl = urlMatch ? urlMatch[1] : null
+            const officialText = officialPart ? officialPart.replace(/\[Official [^\]]+:\s*/, "").replace(/\]$/, "").trim() : null
+            return (
+              <>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-1">Description (Kali)</h3>
+                  <p className="text-sm text-gray-900 whitespace-pre-wrap bg-gray-50 p-3 rounded">{kaliPart || "—"}</p>
+                </div>
+                {officialPart && (
+                  <div className="border-l-4 border-green-500 bg-green-50 p-3 rounded">
+                    <h3 className="text-sm font-semibold text-green-800 mb-1">Official Docs {officialUrl && <a href={officialUrl} target="_blank" rel="noreferrer" className="text-green-700 underline">({officialUrl})</a>}</h3>
+                    <p className="text-sm text-green-900 whitespace-pre-wrap">{officialText}</p>
+                  </div>
+                )}
+              </>
+            )
+          })()}
 
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div><span className="font-semibold text-gray-700">Source:</span> {item.source}</div>
