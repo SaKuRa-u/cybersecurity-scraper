@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { dataAPI, sourcesAPI } from '../services/api'
+import DataDetailModal from './DataDetailModal'
 
 const DataBrowser = () => {
   const [data, setData] = useState([])
@@ -7,6 +8,7 @@ const DataBrowser = () => {
   const [pagination, setPagination] = useState({ page: 1, per_page: 20, total: 0, pages: 0 })
   const [filters, setFilters] = useState({ search: '', source: '', content_type: '', sort_by: 'last_updated_at', order: 'desc' })
   const [loading, setLoading] = useState(true)
+  const [selected, setSelected] = useState(null)
 
   useEffect(() => {
     sourcesAPI.list().then(r => setSources(r.data)).catch(()=>{})
@@ -70,12 +72,12 @@ const DataBrowser = () => {
                 <thead className="bg-gray-50"><tr><th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Title</th><th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Source</th><th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Type</th><th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Tags</th><th className="px-4 py-2 text-right text-xs font-medium text-gray-500">Actions</th></tr></thead>
                 <tbody className="divide-y divide-gray-200">
                   {data.map(item=>(
-                    <tr key={item.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-2"><div className="text-sm font-medium">{item.title}</div><div className="text-xs text-gray-500 truncate max-w-md">{item.description}</div></td>
+                    <tr key={item.id} className="hover:bg-gray-50 cursor-pointer" onClick={()=>setSelected(item)}>
+                      <td className="px-4 py-2"><div className="text-sm font-medium hover:text-blue-600">{item.title}</div><div className="text-xs text-gray-500 truncate max-w-md">{item.description}</div></td>
                       <td className="px-4 py-2 text-sm">{item.source}</td>
                       <td className="px-4 py-2"><span className="px-2 py-1 text-xs rounded-full bg-gray-100">{item.content_type}</span></td>
                       <td className="px-4 py-2 text-xs">{(item.tags||[]).slice(0,3).join(', ')}</td>
-                      <td className="px-4 py-2 text-right"><button onClick={()=>handleDelete(item.id)} className="text-red-600 hover:text-red-800 text-sm">Delete</button></td>
+                      <td className="px-4 py-2 text-right"><button onClick={(e)=>{e.stopPropagation(); handleDelete(item.id)}} className="text-red-600 hover:text-red-800 text-sm">Delete</button></td>
                     </tr>
                   ))}
                 </tbody>
@@ -91,6 +93,8 @@ const DataBrowser = () => {
           </>
         )}
       </div>
+
+      <DataDetailModal item={selected} onClose={()=>setSelected(null)} />
     </div>
   )
 }
