@@ -98,7 +98,7 @@ class KaliDocsScraper(BaseScraper):
                             detailed = " ".join([p.get_text(strip=True) for p in ps]) if ps else ""
                             codes = s2.find_all("code")
                             examples = [c.get_text(strip=True) for c in codes[:3] if len(c.get_text(strip=True))<500]
-                            # Try to fetch official homepage for fresher context (hybrid)
+                            # Try to fetch official homepage for fresher context (hybrid) - ALL tools, not just nmap
                             official_desc = ""
                             try:
                                 pkg_links = s2.find("div", id="package-links")
@@ -106,32 +106,34 @@ class KaliDocsScraper(BaseScraper):
                                 if pkg_links:
                                     for a in pkg_links.find_all("a", href=True):
                                         href = a["href"]
-                                        if href.startswith("http") and "kali.org" not in href and "pkg.kali.org" not in href and "gitlab.com" not in href:
-                                            # Heuristic: first non-kali link is official homepage (e.g., nmap.org)
-                                            if name.lower() in href.lower() or "nmap" in href.lower() or "github" in href.lower() or href.count(".") >= 1:
-                                                official_url = href
-                                                break
+                                        # First http link that is not Kali infra = official homepage
+                                        if href.startswith("http") and "kali.org" not in href and "pkg.kali.org" not in href and "gitlab.com/kalilinux" not in href and "bugs.kali.org" not in href and "edit" not in href.lower():
+                                            official_url = href.split("#")[0].split("?")[0]
+                                            break
                                 if official_url:
                                     logger.info(f"{name} official {official_url}")
-                                    # Fetch official with short timeout, ignore errors
+                                    # Fetch official with longer timeout (scraper can be slow, as requested)
                                     try:
-                                        r2 = await client.get(official_url, timeout=10.0, follow_redirects=True, headers={"User-Agent":"Mozilla/5.0"})
+                                        r2 = await client.get(official_url, timeout=30.0, follow_redirects=True, headers={"User-Agent":"Mozilla/5.0"})
                                         if r2.status_code == 200 and len(r2.text) > 500:
                                             s3 = BeautifulSoup(r2.text,"html.parser")
-                                            # Extract first paragraphs from official site
-                                            op = s3.find_all("p", limit=3)
-                                            official_desc = " ".join([p.get_text(strip=True) for p in op])[:1000]
-                                            # Also try to get examples from official
+                                            # Remove scripts/styles
+                                            for tag in s3(["script","style","nav","footer"]):
+                                                tag.decompose()
+                                            op = s3.find_all("p", limit=5)
+                                            official_desc = " ".join([p.get_text(strip=True) for p in op if len(p.get_text(strip=True))>30])[:1500]
                                             if not examples:
                                                 ocodes = s3.find_all("code", limit=3)
-                                                examples = [c.get_text(strip=True)[:500] for c in ocodes if len(c.get_text(strip=True))>10][:2]
+                                                examples = [c.get_text(strip=True)[:600] for c in ocodes if 10 < len(c.get_text(strip=True)) < 800][:2]
                                             if official_desc:
-                                                desc = f"{desc} [Official: {official_desc[:600]}]"
-                                                detailed = f"{detailed} {official_desc[:500]}"
+                                                desc = f"{desc} [Official {official_url}: {official_desc[:700]}]"
+                                                detailed = f"{detailed} {official_desc[:700]}"
+                                                # Also keep official_url in content for provenance
+                                                # Will be added to content below
                                     except Exception as oe:
-                                        logger.debug(f"Official fetch failed for {name}: {oe}")
-                            except Exception:
-                                pass
+                                        logger.debug(f"Official fetch failed for {name} ({official_url}): {oe}")
+                            except Exception as e:
+                                logger.debug(f"Official extract failed for {name}: {e}")
                             return {"name": name, "category": cat, "description": desc[:1000], "url": url, "usage": name, "detailed_description": detailed[:1500], "examples": examples, "title": title}
                         except Exception as e:
                             logger.warning(f"fetch {url} failed: {e}")
