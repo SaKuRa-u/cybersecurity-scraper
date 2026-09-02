@@ -317,6 +317,19 @@ async def analytics_trends():
         logger.error(f"analytics_trends failed: {e}")
         return JSONResponse(status_code=500, content={"detail": str(e)})
 
+@app.get("/api/export/download/{filename}")
+async def download_export(filename: str):
+    import pathlib
+    from fastapi.responses import FileResponse
+    export_dir = pathlib.Path(settings.EXPORT_DIR)
+    filepath = export_dir / filename
+    # Prevent directory traversal
+    if not filepath.resolve().is_relative_to(export_dir.resolve()):
+        return JSONResponse(status_code=400, content={"detail": "Invalid filename"})
+    if not filepath.exists():
+        return JSONResponse(status_code=404, content={"detail": "File not found"})
+    return FileResponse(str(filepath), media_type="application/x-ndjson" if filename.endswith(".jsonl") else "application/json", filename=filename)
+
 @app.post("/api/export/opensearch")
 async def export_opensearch(source_id: int = None, format: str = "jsonl"):
     try:
@@ -357,7 +370,8 @@ async def export_opensearch(source_id: int = None, format: str = "jsonl"):
                 else:
                     f.write(json.dumps(doc, ensure_ascii=False) + "\n")
         await conn2.close()
-        return {"file_path": str(filepath), "items_exported": len(rows), "format": format}
+        # Return filename for download endpoint
+        return {"file_path": str(filepath), "filename": filename, "items_exported": len(rows), "format": format, "download_url": f"/api/export/download/{filename}"}
     except Exception as e:
         logger.error(f"export failed: {e}", exc_info=True)
         return JSONResponse(status_code=500, content={"detail": str(e)})

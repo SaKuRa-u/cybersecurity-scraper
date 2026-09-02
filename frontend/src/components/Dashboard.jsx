@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { sourcesAPI, analyticsAPI } from '../services/api'
+import { sourcesAPI, analyticsAPI, exportAPI } from '../services/api'
 import SourceCard from './SourceCard'
 
 const Dashboard = () => {
@@ -26,10 +26,39 @@ const Dashboard = () => {
 
   useEffect(() => { loadData() }, [])
 
+  // Poll while scrapes are active
+  useEffect(() => {
+    if (overview?.active_sessions > 0) {
+      const id = setInterval(loadData, 3000)
+      return () => clearInterval(id)
+    }
+  }, [overview?.active_sessions])
+
   const handleScrape = async (id) => {
     await sourcesAPI.scrape(id)
-    // reload after trigger
     setTimeout(loadData, 1000)
+  }
+
+  const handleExportAll = async () => {
+    try {
+      const res = await exportAPI.toOpenSearch({ format: 'jsonl' })
+      const filename = res.data.filename
+      const url = res.data.download_url
+      // Trigger download via Nginx proxy
+      window.open(url, '_blank')
+      alert(`Exported ${res.data.items_exported} items to ${filename}`)
+    } catch (e) {
+      alert('Export failed: ' + (e.response?.data?.detail || e.message))
+    }
+  }
+
+  const handleExportSource = async (sourceId) => {
+    try {
+      const res = await exportAPI.toOpenSearch({ source_id: sourceId, format: 'jsonl' })
+      window.open(res.data.download_url, '_blank')
+    } catch (e) {
+      alert('Export failed: ' + e.message)
+    }
   }
 
   if (loading) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>
@@ -60,10 +89,18 @@ const Dashboard = () => {
         </div>
       )}
 
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold">Sources</h2>
+        <button onClick={handleExportAll} className="btn btn-secondary">Export All (JSONL)</button>
+      </div>
       <div>
-        <h2 className="text-xl font-semibold mb-4">Sources</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {sources.map(s => <SourceCard key={s.id} source={s} onScrape={handleScrape} />)}
+          {sources.map(s => (
+            <div key={s.id} className="relative">
+              <SourceCard source={s} onScrape={handleScrape} />
+              <button onClick={()=>handleExportSource(s.id)} className="mt-2 w-full btn btn-secondary text-sm">Export {s.display_name}</button>
+            </div>
+          ))}
         </div>
         {sources.length === 0 && <p className="text-gray-500">No sources found. Run seed.</p>}
       </div>
