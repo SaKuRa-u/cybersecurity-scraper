@@ -19,11 +19,8 @@ celery_app.conf.update(
     task_track_started=True,
 )
 
-# Auto-discover tasks if tasks folder exists (optional, ignore if missing)
-try:
-    celery_app.autodiscover_tasks(["tasks"], force=True)
-except Exception:
-    pass
+# Tasks will be registered manually when implemented
+# celery_app.autodiscover_tasks(["tasks"])
 
 @celery_app.task(bind=True)
 def debug_task(self):
