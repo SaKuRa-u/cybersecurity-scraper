@@ -13,9 +13,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Alembic config
-COPY alembic.ini .
-COPY alembic ./alembic
+# Create dummy alembic.ini if not present (for build)
+RUN if [ ! -f alembic.ini ]; then echo "# alembic config" > alembic.ini; fi
 
 EXPOSE 8000
 
