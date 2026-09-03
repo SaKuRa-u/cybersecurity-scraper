@@ -152,13 +152,13 @@ class KaliDocsScraper(BaseScraper):
                                             for tag in s3(["script","style","nav","footer"]):
                                                 tag.decompose()
                                             op = s3.find_all("p", limit=5)
-                                            official_desc = " ".join([p.get_text(strip=True) for p in op if len(p.get_text(strip=True))>30])[:1500]
-                                            if not examples:
-                                                ocodes = s3.find_all("code", limit=3)
-                                                examples = [c.get_text(strip=True)[:600] for c in ocodes if 10 < len(c.get_text(strip=True)) < 800][:2]
-                                            if official_desc:
-                                                desc = f"{desc} [Official {official_url}: {official_desc[:700]}]"
-                                                detailed = f"{detailed} {official_desc[:700]}"
+                                             official_desc = " ".join([p.get_text(strip=True) for p in op if len(p.get_text(strip=True))>30])[:8000]
+                                             if not examples:
+                                                 ocodes = s3.find_all("code", limit=5)
+                                                 examples = [c.get_text(strip=True)[:2000] for c in ocodes if 10 < len(c.get_text(strip=True)) < 3000][:3]
+                                             if official_desc:
+                                                 desc = f"{desc} [Official {official_url}: {official_desc[:3000]}]"
+                                                 detailed = f"{detailed}\n\n--- Official {official_url} ---\n{official_desc[:8000]}"
                                                 # Also keep official_url in content for provenance
                                                 # Will be added to content below
                                     except Exception as oe:
