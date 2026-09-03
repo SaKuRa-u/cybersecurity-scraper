@@ -90,8 +90,8 @@ class KaliDocsScraper(BaseScraper):
                             # Description: first substantial paragraphs (up to 5000 chars)
                             ps = content_section.find_all("p") if content_section else []
                             # Filter out empty and take first 8 paragraphs
-                            desc_paras = [p.get_text(strip=True) for p in ps if len(p.get_text(strip=True)) > 20][:8]
-                            desc = " ".join(desc_paras)[:5000] if desc_paras else f"Kali tool {name}"
+                            desc_paras = [p.get_text(strip=True) for p in ps if len(p.get_text(strip=True)) > 20][:12]
+                            desc = " ".join(desc_paras) if desc_paras else f"Kali tool {name}"
                             cat = known_cat
                             if cat == "Unknown":
                                 breadcrumb = s2.find("nav", class_="breadcrumb") or s2.find("ol", class_="breadcrumb")
@@ -114,7 +114,7 @@ class KaliDocsScraper(BaseScraper):
                                         parts.append(f"\n```\n{txt}\n```\n")
                                     else:
                                         parts.append(txt)
-                                detailed = " ".join(parts)  # no 50k limit, store full
+                                detailed = " ".join(parts)  # no limit, full 60k+ for nmap
                             # Examples: all pre/code blocks full (no 500 char filter)
                             examples = []
                             if content_section:
@@ -151,19 +151,19 @@ class KaliDocsScraper(BaseScraper):
                                             # Remove scripts/styles
                                             for tag in s3(["script","style","nav","footer"]):
                                                 tag.decompose()
-                                            op = s3.find_all("p", limit=15)
-                                            official_desc = " ".join([p.get_text(strip=True) for p in op if len(p.get_text(strip=True))>20])[:20000]
+                                            op = s3.find_all("p")  # all p, no 15 limit
+                                            official_desc = " ".join([p.get_text(strip=True) for p in op if len(p.get_text(strip=True))>20])
                                             if not examples:
-                                                ocodes = s3.find_all("code", limit=5)
-                                                examples = [c.get_text(strip=True)[:2000] for c in ocodes if 10 < len(c.get_text(strip=True)) < 3000][:3]
+                                                ocodes = s3.find_all("code", limit=8)
+                                                examples = [c.get_text(strip=True) for c in ocodes if 10 < len(c.get_text(strip=True))][:5]
                                             if official_desc:
-                                                desc = f"{desc} [Official {official_url}: {official_desc[:5000]}]"
+                                                desc = f"{desc} [Official {official_url}: {official_desc}]"
                                                 detailed = f"{detailed}\n\n--- Official {official_url} ---\n{official_desc}"
                                     except Exception as oe:
                                         logger.debug(f"Official fetch failed for {name} ({official_url}): {oe}")
                             except Exception as e:
                                 logger.debug(f"Official extract failed for {name}: {e}")
-                            return {"name": name, "category": cat, "description": desc[:8000], "url": url, "usage": name, "detailed_description": detailed, "examples": examples[:8], "title": title}
+                            return {"name": name, "category": cat, "description": desc, "url": url, "usage": name, "detailed_description": detailed, "examples": examples, "title": title}
                         except Exception as e:
                             logger.warning(f"fetch {url} failed: {e}")
                             name = url.rstrip("/").split("/")[-1]
