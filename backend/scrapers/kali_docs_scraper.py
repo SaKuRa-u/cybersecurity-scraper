@@ -151,14 +151,14 @@ class KaliDocsScraper(BaseScraper):
                                             # Remove scripts/styles
                                             for tag in s3(["script","style","nav","footer"]):
                                                 tag.decompose()
-                                            op = s3.find_all("p", limit=5)
-                                            official_desc = " ".join([p.get_text(strip=True) for p in op if len(p.get_text(strip=True))>30])[:8000]
+                                            op = s3.find_all("p", limit=15)
+                                            official_desc = " ".join([p.get_text(strip=True) for p in op if len(p.get_text(strip=True))>20])[:20000]
                                             if not examples:
                                                 ocodes = s3.find_all("code", limit=5)
                                                 examples = [c.get_text(strip=True)[:2000] for c in ocodes if 10 < len(c.get_text(strip=True)) < 3000][:3]
                                             if official_desc:
-                                                desc = f"{desc} [Official {official_url}: {official_desc[:3000]}]"
-                                                detailed = f"{detailed}\n\n--- Official {official_url} ---\n{official_desc[:8000]}"
+                                                desc = f"{desc} [Official {official_url}: {official_desc[:5000]}]"
+                                                detailed = f"{detailed}\n\n--- Official {official_url} ---\n{official_desc}"
                                     except Exception as oe:
                                         logger.debug(f"Official fetch failed for {name} ({official_url}): {oe}")
                             except Exception as e:
