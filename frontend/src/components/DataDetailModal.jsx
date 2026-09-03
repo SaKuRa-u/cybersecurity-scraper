@@ -74,8 +74,8 @@ const DataDetailModal = ({ item, onClose }) => {
           )}
 
           <div>
-            <h3 className="text-sm font-semibold text-gray-700 mb-1">Content (JSON)</h3>
-            <pre className="text-xs bg-gray-900 text-gray-100 p-4 rounded overflow-x-auto whitespace-pre-wrap break-words max-h-96 overflow-y-auto">{contentStr}</pre>
+            <h3 className="text-sm font-semibold text-gray-700 mb-1">Content (JSON) — {Math.round(contentStr.length/1000)} KB</h3>
+            <pre className="text-xs bg-gray-900 text-gray-100 p-4 rounded overflow-x-auto whitespace-pre-wrap break-words max-h-[60vh] overflow-y-auto">{contentStr}</pre>
           </div>
         </div>
 

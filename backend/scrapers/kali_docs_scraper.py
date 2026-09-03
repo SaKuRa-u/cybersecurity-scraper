@@ -99,30 +99,30 @@ class KaliDocsScraper(BaseScraper):
                                     cats = [a.get_text(strip=True) for a in breadcrumb.find_all("a")]
                                     if len(cats)>=2:
                                         cat = cats[-2]
-                            # Detailed: all text from content_section (including headings + pre)
+                            # Detailed: all text from content_section (including headings + pre) - FULL, no truncation
                             detailed = ""
                             if content_section:
-                                # Get all headings and paragraphs and pre
                                 elements = content_section.find_all(["h1","h2","h3","h4","h5","p","pre"])
                                 parts = []
-                                for el in elements[:50]:  # limit 50 elements
-                                    txt = el.get_text(strip=True)
-                                    if len(txt) > 20:
-                                        if el.name.startswith("h"):
-                                            parts.append(f"\n## {txt}\n")
-                                        elif el.name == "pre":
-                                            parts.append(f"\n```\n{txt[:3000]}\n```\n")
-                                        else:
-                                            parts.append(txt)
-                                detailed = " ".join(parts)[:12000]
-                            # Examples: all pre/code blocks (full man page), not truncated to 500
+                                for el in elements[:120]:  # up to 120 elements to capture full man page
+                                    txt = el.get_text(" ", strip=True)
+                                    if len(txt) < 20:
+                                        continue
+                                    if el.name.startswith("h"):
+                                        parts.append(f"\n## {txt}\n")
+                                    elif el.name == "pre":
+                                        parts.append(f"\n```\n{txt[:12000]}\n```\n")
+                                    else:
+                                        parts.append(txt)
+                                detailed = " ".join(parts)[:50000]  # 50k limit to ensure full nmap man page fits
+                            # Examples: all pre/code blocks full (no 500 char filter)
                             examples = []
                             if content_section:
                                 pres = content_section.find_all("pre")
-                                for pre in pres[:5]:
-                                    txt = pre.get_text(strip=True)
+                                for pre in pres[:8]:
+                                    txt = pre.get_text(" ", strip=True)
                                     if len(txt) > 30:
-                                        examples.append(txt[:5000])
+                                        examples.append(txt[:12000])
                                 if not examples:
                                     codes = content_section.find_all("code")
                                     for c in codes[:5]:
@@ -165,7 +165,7 @@ class KaliDocsScraper(BaseScraper):
                                         logger.debug(f"Official fetch failed for {name} ({official_url}): {oe}")
                             except Exception as e:
                                 logger.debug(f"Official extract failed for {name}: {e}")
-                            return {"name": name, "category": cat, "description": desc[:6000], "url": url, "usage": name, "detailed_description": detailed[:15000], "examples": examples[:5], "title": title}
+                            return {"name": name, "category": cat, "description": desc[:8000], "url": url, "usage": name, "detailed_description": detailed[:50000], "examples": examples[:8], "title": title}
                         except Exception as e:
                             logger.warning(f"fetch {url} failed: {e}")
                             name = url.rstrip("/").split("/")[-1]
