@@ -99,22 +99,22 @@ class KaliDocsScraper(BaseScraper):
                                     cats = [a.get_text(strip=True) for a in breadcrumb.find_all("a")]
                                     if len(cats)>=2:
                                         cat = cats[-2]
-                            # Detailed: all text from content_section (including headings + pre) - FULL, no truncation
+                            # Detailed: all text from content_section (including headings + pre) - FULL, no arbitrary cut
                             detailed = ""
                             if content_section:
                                 elements = content_section.find_all(["h1","h2","h3","h4","h5","p","pre"])
                                 parts = []
-                                for el in elements[:120]:  # up to 120 elements to capture full man page
+                                for el in elements:  # all elements, no 120 limit
                                     txt = el.get_text(" ", strip=True)
                                     if len(txt) < 20:
                                         continue
                                     if el.name.startswith("h"):
                                         parts.append(f"\n## {txt}\n")
                                     elif el.name == "pre":
-                                        parts.append(f"\n```\n{txt[:12000]}\n```\n")
+                                        parts.append(f"\n```\n{txt}\n```\n")
                                     else:
                                         parts.append(txt)
-                                detailed = " ".join(parts)[:50000]  # 50k limit to ensure full nmap man page fits
+                                detailed = " ".join(parts)  # no 50k limit, store full
                             # Examples: all pre/code blocks full (no 500 char filter)
                             examples = []
                             if content_section:
@@ -165,7 +165,7 @@ class KaliDocsScraper(BaseScraper):
                                         logger.debug(f"Official fetch failed for {name} ({official_url}): {oe}")
                             except Exception as e:
                                 logger.debug(f"Official extract failed for {name}: {e}")
-                            return {"name": name, "category": cat, "description": desc[:8000], "url": url, "usage": name, "detailed_description": detailed[:50000], "examples": examples[:8], "title": title}
+                            return {"name": name, "category": cat, "description": desc[:8000], "url": url, "usage": name, "detailed_description": detailed, "examples": examples[:8], "title": title}
                         except Exception as e:
                             logger.warning(f"fetch {url} failed: {e}")
                             name = url.rstrip("/").split("/")[-1]
