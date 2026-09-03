@@ -56,7 +56,7 @@ class GitHubScraper(BaseScraper):
                         raw_url = f"https://raw.githubusercontent.com/{repo}/{branch}/{path}"
                         try:
                             rf = await client.get(raw_url)
-                            text = rf.text[:5000] if rf.status_code==200 else ""
+                            text = rf.text if rf.status_code==200 else ""
                         except: text=""
                         items.append({"repo": repo, "file_path": path, "stars": stars, "content": text, "url": f"https://github.com/{repo}/blob/{branch}/{path}", "sha": node.get("sha")})
                         count+=1

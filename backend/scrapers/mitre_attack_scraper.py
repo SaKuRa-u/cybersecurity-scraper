@@ -30,7 +30,7 @@ class MITREAttackScraper(BaseScraper):
             "external_id": tid,
             "content_type": "technique",
             "title": raw_item["name"],
-            "description": raw_item.get("description","")[:2000],
+            "description": raw_item.get("description",""),
             "content": {"technique_id": tid, "is_sub_technique": is_sub, "tactics": tactics, "platforms": raw_item.get("x_mitre_platforms",[]), "description": raw_item.get("description",""), "mitre_version": raw_item.get("x_mitre_version")},
             "tags": tags,
             "url": f"https://attack.mitre.org/techniques/{tid.replace('.', '/')}/"
